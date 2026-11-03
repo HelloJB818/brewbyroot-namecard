@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bryan Phun – Digital Name Card</title>
+<style>
+  :root {
+    --bg: #f4efe9;
+    --card: #ffffff;
+    --ink: #1f1b24;
+    --muted: #6d6677;
+    --accent: #b4476b;
+    --accent-ink: #ffffff;
+    --line: #e8e1da;
+    --shadow: 0 20px 50px -20px rgba(60, 30, 50, .35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17141b;
+      --card: #221e29;
+      --ink: #f3eef6;
+      --muted: #a79fb2;
+      --accent: #e0749a;
+      --accent-ink: #1a1220;
+      --line: #36303f;
+      --shadow: 0 20px 50px -20px rgba(0, 0, 0, .7);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px 16px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  }
+  .card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--card);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .banner {
+    height: 150px;
+    background: linear-gradient(135deg, var(--accent), #6b4a9e);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .slide {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 1s ease;
+  }
+  .slide.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .slide { transition: none; } }
+  .banner.has-img::after {
+    z-index: 1; pointer-events: none;
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,.05), rgba(0,0,0,.35));
+  }
+  .body { padding: 0 28px 28px; text-align: center; }
+  .avatar {
+    width: 150px; height: 150px;
+    margin: -75px auto 14px;
+    position: relative; z-index: 1;
+    border-radius: 50%;
+    border: 4px solid var(--card);
+    background: #efe9e1 url("logo.png") no-repeat center 18% / 92%;
+    color: var(--accent-ink);
+    display: grid; place-items: center;
+    font-size: 34px; font-weight: 600;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; transform: translateY(16%) scale(.82); transform-origin: center bottom; }
+  h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.01em; }
+  .title { margin: 4px 0 0; color: var(--accent); font-weight: 600; font-size: .95rem; }
+  .bio { margin: 14px 0 0; color: var(--muted); font-size: .92rem; line-height: 1.5; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 22px 0 8px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 12px 10px; border-radius: 12px;
+    border: 1px solid var(--line); background: transparent; color: var(--ink);
+    font: inherit; font-weight: 600; font-size: .9rem;
+    cursor: pointer; text-decoration: none;
+  }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); grid-column: 1 / -1; }
+  .btn:hover { filter: brightness(1.06); }
+  .btn:focus-visible, .row:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .list { margin-top: 14px; text-align: left; border-top: 1px solid var(--line); }
+  .row {
+    display: flex; gap: 14px; align-items: center;
+    padding: 13px 4px; border-bottom: 1px solid var(--line);
+    color: inherit; text-decoration: none;
+  }
+  .row .k { width: 76px; flex: none; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .row .v { font-size: .95rem; word-break: break-word; }
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px);
+    background: var(--ink); color: var(--bg);
+    padding: 10px 18px; border-radius: 999px; font-size: .88rem;
+    opacity: 0; pointer-events: none; transition: .25s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<main class="card">
+  <div class="banner" id="banner"></div>
+  <div class="body">
+    <div class="avatar" id="avatar"></div>
+    <h1 id="name"></h1>
+    <p class="title" id="title"></p>
+    <p class="bio" id="bio"></p>
+
+    <div class="actions">
+      <button class="btn primary" id="save">Save to contacts</button>
+      <button class="btn" id="copy">Copy email</button>
+      <button class="btn" id="share">Share card</button>
+    </div>
+
+    <div class="list" id="list"></div>
+  </div>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+// ✏️ EDIT YOUR DETAILS HERE — leave a field as "" to hide it.
+const ME = {
+  firstName: "Bryan",
+  lastName: "Phun",
+  title: "Director",
+  company: "Brew By Root",
+  bio: "| Kombucha | Fermented food & drink | Workshops | Corporate gifts |",
+  email: "bryan.phun@gmail.com",
+  phone: "+60 11-2779 6201",
+  website: "https://www.brewbyroot.com/",
+  facebook: "https://www.facebook.com/brewbyroot",
+  instagram: "https://www.instagram.com/brewbyroot/",
+  whatsappMessage: "Hello mate, greeting from TT360",
+  whatsapp: "601127796201",        // digits only with country code, e.g. 60123456789
+  locations: [
+    { label: "JB", address: "30, Jalan Sutera 2, Taman Sutera, 81200 Johor Bahru, Johor" },
+    { label: "KL", address: "No.58-3, Jalan 5/101c, Cheras Business Centre, 56100 Kuala Lumpur, Wilayah Persekutuan Kuala Lumpur" }
+  ],
+  photo: "bryan.png",  // optional image URL or file path, e.g. "me.jpg"
+  covers: ["cover/cover0.jpg", "cover/cover1.jpg", "cover/cover2.jpg", "cover/cover3.jpg"]  // banner slideshow; [] for plain gradient
+};
+
+const $ = id => document.getElementById(id);
+const fullName = [ME.firstName, ME.lastName].filter(Boolean).join(" ");
+
+$("name").textContent = fullName;
+$("title").textContent = [ME.title, ME.company].filter(Boolean).join(" · ");
+$("bio").textContent = ME.bio;
+$("bio").hidden = !ME.bio;
+
+if (ME.covers.length) {
+  const banner = $("banner");
+  banner.classList.add("has-img");
+  const slides = ME.covers.map((src, i) => {
+    const s = document.createElement("div");
+    s.className = "slide" + (i === 0 ? " on" : "");
+    s.style.backgroundImage = `url("${src}")`;
+    banner.appendChild(s);
+    return s;
+  });
+  let cur = 0;
+  if (slides.length > 1) setInterval(() => {
+    slides[cur].classList.remove("on");
+    cur = (cur + 1) % slides.length;
+    slides[cur].classList.add("on");
+  }, 3500);
+}
+
+const av = $("avatar");
+if (ME.photo) {
+  const img = new Image(); img.alt = fullName; img.src = ME.photo;
+  img.onerror = () => { av.textContent = initials(); };
+  av.appendChild(img);
+} else av.textContent = initials();
+function initials() {
+  return (ME.firstName[0] || "") + (ME.lastName[0] || "");
+}
+
+const rows = [
+  ["Email", ME.email, ME.email && `mailto:${ME.email}`],
+  ["Phone", ME.phone, ME.phone && `tel:${ME.phone.replace(/\s/g, "")}`],
+  ["WhatsApp", ME.whatsapp && "Message me", ME.whatsapp && `https://wa.me/${ME.whatsapp}?text=${encodeURIComponent(ME.whatsappMessage)}`],
+  ["Website", ME.website && ME.website.replace(/^https?:\/\//, ""), ME.website],
+  ["Facebook", ME.facebook && "@brewbyroot", ME.facebook],
+  ["Instagram", ME.instagram && "@brewbyroot", ME.instagram],
+  ...ME.locations.map(l => [l.label, l.address, `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(l.address)}`])
+].filter(r => r[1]);
+
+for (const [k, v, href] of rows) {
+  const el = document.createElement(href ? "a" : "div");
+  el.className = "row";
+  if (href) { el.href = href; if (href.startsWith("http")) { el.target = "_blank"; el.rel = "noopener"; } }
+  el.innerHTML = `<span class="k"></span><span class="v"></span>`;
+  el.children[0].textContent = k;
+  el.children[1].textContent = v;
+  $("list").appendChild(el);
+}
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+$("save").onclick = () => {
+  const lines = [
+    "BEGIN:VCARD", "VERSION:3.0",
+    `N:${ME.lastName};${ME.firstName};;;`,
+    `FN:${fullName}`,
+    ME.company && `ORG:${ME.company}`,
+    ME.title && `TITLE:${ME.title}`,
+    ME.email && `EMAIL;TYPE=INTERNET:${ME.email}`,
+    ME.phone && `TEL;TYPE=CELL:${ME.phone}`,
+    ME.website && `URL:${ME.website}`,
+    ...ME.locations.map(l => `ADR;TYPE=WORK:;;${l.address.replace(/,/g, "\\,")};;;;`),
+    "END:VCARD"
+  ].filter(Boolean).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines], { type: "text/vcard" }));
+  a.download = `${fullName.replace(/\s+/g, "_")}.vcf`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast("Contact file downloaded");
+};
+
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(ME.email); toast("Email copied"); }
+  catch { toast(ME.email); }
+};
+
+$("share").onclick = async () => {
+  const data = { title: fullName, text: `${fullName} – ${ME.title}`, url: location.href };
+  try {
+    if (navigator.share) await navigator.share(data);
+    else { await navigator.clipboard.writeText(location.href); toast("Link copied"); }
+  } catch {}
+};
+if (!ME.email) $("copy").hidden = true;
+</script>
+</body>
+</html>
